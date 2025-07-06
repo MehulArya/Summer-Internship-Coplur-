@@ -115,7 +115,7 @@ SELECT
   s.customer_id,
   SUM(
     CASE
-      WHEN s.order_date BETWEEN mem.join_date AND mem.join_date + INTERVAL '6 day'
+      WHEN s.order_date BETWEEN mem.join_date AND mem.join_date + INTERVAL 6 day
         THEN m.price * 20
       WHEN m.product_name = 'sushi'
         THEN m.price * 20
