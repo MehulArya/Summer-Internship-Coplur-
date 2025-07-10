@@ -1,0 +1,20 @@
+user_table = spark.table("dynamic_code.metadata_with_logic")
+user_table.display()
+
+collection = user_table.collect()
+for _ in collection:
+    print(_)
+
+raw_tables = {}
+for row in collection:
+    tname = row[1]
+    col_def = f"{row[2]} {row[3]}"
+    if tname not in raw_tables:
+        raw_tables[tname] = []
+    raw_tables[tname].append(col_def)
+print(raw_tables)
+
+for i,j in raw_tables.items():
+    spark.sql(f'''CREATE TABLE if not exists dynamic_code.{i} ({','.join(j)})''')
+spark.sql('select * from dynamic_code.user').display()
+spark.sql('select * from dynamic_code.sales').display()

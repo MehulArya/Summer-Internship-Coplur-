@@ -1,0 +1,71 @@
+user_table = spark.table("dynamic_code.metadata_with_logic")
+user_table.display()
+
+collection = user_table.collect()
+for _ in collection:
+    print(_)
+
+raw_tables = {}
+for row in collection:
+    tname = row[1]
+    col_def = f"{row[2]} {row[3]}"
+    if tname not in raw_tables:
+        raw_tables[tname] = []
+    raw_tables[tname].append(col_def)
+print(raw_tables)
+
+cur_tables = {}
+for row in collection:
+    tname = row[5]
+    col_def = f"{row[6]} {row[7]}"
+    if tname not in cur_tables:
+        cur_tables[tname] = []
+    cur_tables[tname].append(col_def)
+print(cur_tables)
+
+for i,j in raw_tables.items():
+    spark.sql(f'''CREATE TABLE if not exists dynamic_code.{i} ({','.join(j)})''')
+spark.sql('select * from dynamic_code.user').display()
+spark.sql('select * from dynamic_code.sales').display()
+
+for i,j in cur_tables.items():
+    spark.sql(f'''CREATE TABLE if not exists dynamic_code.{i} ({','.join(j)})''')
+spark.sql('select * from dynamic_code.cur_sales').display()
+spark.sql('select * from dynamic_code.cur_user').display()
+
+spark.sql("INSERT INTO dynamic_code.user VALUES ('1','John'), ('2','Jane')")
+spark.sql("INSERT INTO dynamic_code.sales VALUES ('1','2023-01-01'),('2', '2025-01-01')")
+
+spark.sql("select * from dynamic_code.user").display()
+spark.sql("select * from dynamic_code.sales").display()
+
+dbutils.widgets.text("Process_name", "")
+Filtered_meta_data = user_table.filter(user_table.Process_name == dbutils.widgets.get("Process_name"))
+Filtered_meta_data.display()
+
+Filtered_collection = Filtered_meta_data.collect()
+Filtered_meta_data.display()
+for row in Filtered_collection:
+    print(row)
+
+Filtered_raw_tables = {}
+for filter_row in Filtered_collection:
+    tname = filter_row[1]
+    col_def = f"{filter_row[2]}"
+    if tname not in Filtered_raw_tables:
+        Filtered_raw_tables[tname] = []
+    Filtered_raw_tables[tname].append(col_def)
+print(Filtered_raw_tables)
+
+Filtered_cur_tables = {}
+for filtered_row in Filtered_collection:
+    tname = filtered_row[5]
+    col_def = f"{filtered_row[6]}"
+    if tname not in Filtered_cur_tables:
+        Filtered_cur_tables[tname] = []
+    Filtered_cur_tables[tname].append(col_def)
+print(Filtered_cur_tables)
+
+for i,j in Filtered_cur_tables.items():
+    for k,l in Filtered_raw_tables.items():
+        spark.sql(f'''INSERT INTO dynamic_code.{i} ({','.join(j)}) SELECT {','.join(l)} FROM dynamic_code.{k}''')
